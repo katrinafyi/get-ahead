@@ -9,10 +9,10 @@ struct TreeNode {
 
 // intermediate result struct.
 struct Result {
-    // length of longest path possibly not reaching root.
-    int longest;
-    // length of longest path reaching root.
-    int top;
+    // length of longest path.
+    int length;
+    // true if the longest path reaches the root node.
+    bool top;
 };
 
 #define TOP_PREFIX "+-"
@@ -45,23 +45,30 @@ void print_tree(const TreeNode& node, const std::string& prefix) {
 }
 
 Result solve(const TreeNode& node) {
-    Result result = {0, 0};
+    Result result = {0, true};
 
     for (const TreeNode& child : node.children) {
         Result childResult = solve(child);
+    
+        // 2 options:
+        // - longest path is longest path of child, or
+        // - longest path is longest path of child + 1 if this node and child
+        //   are consecutive and child's longest path reaches the top.
 
-        // longest path could be longest path of child.
-        result.longest = std::max(result.longest, childResult.longest);
+        int m = childResult.length;
+        bool top = false;
 
-        // if consecutive, longest path reaching top is longest top path of
-        // child + 1.
-        if (child.value == node.value + 1) {
-            result.top = std::max(result.top, 1 + childResult.top);
+        if (child.value == node.value + 1 && childResult.top) {
+            m = childResult.length + 1;
+            top = true;
+        }
+
+        // prioritise results with longer length OR top flag set.
+        if (m >= result.length && (m > result.length || top)) {
+            result.length = m;
+            result.top = top;
         }
     }
-
-    // longest path could also be longest path reaching top.
-    result.longest = std::max(result.longest, result.top);
 
     // std::cout << node.value << ": " << result.length << ',' << result.top << std::endl;
     return result;
@@ -76,14 +83,14 @@ int main(int argc, char** argv) {
         {5, {{12}, {7, {{8, {{9, {{15}, {10}}}}}, {6}}}}},
         {1, {{2, {{10, {{11, {{12, {{13, {{14}}}}}}}}}}}}},
         ONE(8, ONE(9, TWO(10, 
-                        ONE(1, ONE(2, ONE(3, {4}))),
+                        ONE(1, ONE(2, ONE(3, ONE(4, {5})))),
                         ONE(11, ONE(12, {13}))))),
     };
 
     for (const TreeNode& tree : tests) {
         print_tree(tree, "");
         Result result = solve(tree);
-        std::cout << "solution: " << 1 + result.longest << std::endl << std::endl;
+        std::cout << "solution: " << 1 + result.length << std::endl << std::endl;
     }
 
     return 0;

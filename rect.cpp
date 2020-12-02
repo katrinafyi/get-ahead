@@ -25,7 +25,7 @@ void print_matrix(const Vec<Vec<int>>& matrix) {
     }
 }
 
-Result solve(Vec<Vec<int>>& data) {
+Result solve(const Vec<Vec<int>>& data) {
     int rows = data.size();
 
     // heights[i][j] contains the maximum heigth of the rectangle from row i to j (inclusive).
@@ -102,7 +102,7 @@ int main() {
         {{1, 3, 2, 2}, {2, 1, 2, 3}, {4, 2, 3}, {1, 1, 2, 17, 14}, {3, 1, 2, 2}},
     };
     int i = 0;
-    for (Vec<Vec<int>>& test : tests) {
+    for (const Vec<Vec<int>>& test : tests) {
         std::cout << "test " << i << std::endl;
         // print_matrix(test);
         print_result(solve(test));

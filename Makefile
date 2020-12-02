@@ -1,7 +1,7 @@
 FLAGS = -g -std=c++17
 CC = g++
 
-programs = parens tree
+programs = parens parens2 tree rect words
 
 all: $(programs)
 

@@ -28,24 +28,20 @@ void print_matrix(const Vec<Vec<int>>& matrix) {
 Result solve(Vec<Vec<int>>& data) {
     int rows = data.size();
 
-    // heights[i][j] contains the maximum heigth of the rectangle from row i to j.
+    // heights[i][j] contains the maximum heigth of the rectangle from row i to j (inclusive).
     int heights[rows][rows] = {0};
-
+    // base: height from i to i is just the length of that row.
     for (int i = 0; i < rows; i++) {
         heights[i][i] = data[i].size();
     }
-    
-    // fill in heights matrix diagonally.
-    for (int i = 1; i < rows; i++) {
-        int r = 0;
-        int c = i;
-        while (c < rows) {
-            heights[r][c] = std::min(heights[r][c-1], heights[r+1][c]);
-            c++;
-            r++;
+    // fill heights matrix by extending one row at a time.
+    for (int i = 0; i < rows; i++) {
+        for (int j = i + 1; j < rows; j++) {
+            heights[i][j] = std::min(heights[i][j-1], heights[j][j]);
         }
     }
 
+    // print heights matrix.
     std::cout << "heights:" << std::endl;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < rows; j++) {
@@ -54,6 +50,7 @@ Result solve(Vec<Vec<int>>& data) {
         std::cout << std::endl;
     }
 
+    // prefix sums prefixes[i][j] is the sum of the first j values in row i.
     Vec<Vec<int>> prefixes;
     for (Vec<int> row : data) {
         Vec<int> rowPrefix{ 0 };
@@ -65,15 +62,20 @@ Result solve(Vec<Vec<int>>& data) {
 
     std::cout << "prefixes:" << std::endl;
     print_matrix(prefixes);
-    
+
+    // for each starting and ending row pair,
+    // compute the sum of those rows at the maximum possible height
+    // (because we want as many numbers as possible).
     Result result{ 0 };
     for (int i = 0; i < rows; i++) {
         for (int j = i; j < rows; j++) {
             int h = heights[i][j];
+
             int sum = 0;
             for (int k = i; k <= j; k++) {
                 sum += prefixes[k][h];
             }
+
             if (sum > result.sum) {
                 result.sum = sum;
                 result.top = i;

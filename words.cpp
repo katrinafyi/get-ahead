@@ -5,8 +5,16 @@
 #include <string>
 #include <vector>
 
+constexpr int kPrefixLength = 4;
+
+struct Data {
+    std::vector<std::string> grid;
+    std::unordered_set<std::string> words;
+    std::unordered_set<std::string> prefixes;
+    int prefix_length;
+};
+
 struct Coord {
-public:
     int row;
     int col;
     
@@ -15,53 +23,85 @@ public:
     }
 };
 
+namespace std {
+    template<>
+    struct hash<Coord> {
+        size_t operator()(const Coord& coord) const {
+            return std::hash<int>()(coord.row) * 31 + std::hash<int>()(coord.col);
+        }
+    };
+};
+
 struct Item {
     Coord pos;
     std::string word;
+    std::unordered_set<Coord> seen;
 };
 
-int LongestWord(std::vector<std::string> grid, Coord start) {
+int LongestWord(const Data& data, const Coord start) {
+
+    const std::vector<std::string>& grid = data.grid;
+    const std::unordered_set<std::string>& words = data.words;
+    const std::unordered_set<std::string>& prefixes = data.prefixes;
+
     int dim = grid.size();
 
-    auto coord_hash = [](const Coord& coord) {
-        return std::hash<int>()(coord.row) * 31 + std::hash<int>()(coord.col);
-    };
-
     std::vector<Item> stack;
-    std::unordered_set<Coord, decltype(coord_hash)> seen(5, coord_hash);
 
     auto letter_at = [&grid](Coord coord) {
         return grid[coord.row][coord.col];
     };
 
-    std::vector<Coord> shifts{ {0, 1}, {1, 0}, {-1, 0}, {0, -1} };
+    std::vector<int> shifts{ 0, 1, -1 };
 
-    stack.push_back(Item{ start, { letter_at(start) } });
+    stack.push_back(Item{ start, { letter_at(start) },
+            std::unordered_set{ start } });
 
-    int longest = 0;
+    std::string longest;
     while (!stack.empty()) {
         Item item = stack.back();
         stack.pop_back();
 
-        if (!seen.insert(item.pos).second) {
-            continue; // if seen already has coord, ignore.
+        // if current word part is equal to prefix length but not a prefix,
+        // terminate this path.
+        if (item.word.size() == data.prefix_length && !prefixes.count(item.word)) {
+            continue;
         }
 
-        std::cout << item.pos.row << "," << item.pos.col << ": >" << item.word << "<" << std::endl;
-        
-        for (const Coord& shift : shifts) {
-            Coord new_coord = item.pos;
-            new_coord.row += shift.row;
-            new_coord.col += shift.col;
+        if (words.count(item.word) && item.word.size() > longest.size()) {
+            longest = item.word;
+        }
 
-            if (0 <= new_coord.row && new_coord.row < dim &&
-                    0 <= new_coord.col && new_coord.col < dim) {
-                std::string suffix{ letter_at(new_coord) };
-                stack.push_back(Item{ new_coord, item.word + suffix });
+        // std::cout << item.pos.row << "," << item.pos.col << ": >" << item.word << "<" << std::endl;
+        
+        // for each of the 8 adjacent positions
+        for (int dr : shifts) {
+            for (int dc : shifts) {
+
+                if (dr == 0 && dc == 0)
+                    continue;
+
+                Coord new_coord = item.pos;
+                new_coord.row += dr;
+                new_coord.col += dc;
+
+                if (0 <= new_coord.row && new_coord.row < dim &&
+                        0 <= new_coord.col && new_coord.col < dim &&
+                        !item.seen.count(new_coord)) {
+
+                    std::string suffix{ letter_at(new_coord) };
+                    std::unordered_set<Coord> new_seen(item.seen);
+                    new_seen.insert(new_coord);
+
+                    stack.push_back(Item{ new_coord, item.word + suffix, new_seen });
+                }
             }
         }
     }
 
+    std::cout << "longest: " << longest << std::endl;
+
+    return longest.size();
 }
 
 int main(int argc, char** argv) {
@@ -74,6 +114,7 @@ int main(int argc, char** argv) {
         word_file = argv[2];
 
     std::unordered_set<std::string> words;
+    std::unordered_set<std::string> prefixes; // prefixes of length 4
 
     std::ifstream word_stream(word_file);
     if (!word_stream.is_open()) {
@@ -83,7 +124,12 @@ int main(int argc, char** argv) {
 
     std::string line;
     while (std::getline(word_stream, line)) {
+        // uppercase words
+        for (char& c : line)
+            c = toupper(c);
+        // insert word and prefix
         words.insert(line);
+        prefixes.insert(line.substr(0, kPrefixLength));
     }
     word_stream.close();
 
@@ -102,12 +148,13 @@ int main(int argc, char** argv) {
 
     std::cout << words.size() << " words in list" << std::endl;
 
+    Data data = { grid, words, prefixes, kPrefixLength };
+
     int n = grid.size();
     int max = 0;
     for (int r = 0; r < n; r++) {
         for (int c = 0; c < n; c++) {
-            max = std::max(max, LongestWord(grid, {r, c}));
-            break;
+            max = std::max(max, LongestWord(data, {r, c}));
         }
     }
 

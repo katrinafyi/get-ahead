@@ -6,13 +6,13 @@
 #include <string>
 #include <vector>
 
-constexpr int kPrefixLength = 4;
-
+// data passed to function
 struct Data {
     std::vector<std::string> grid;
     std::set<std::string> words;
 };
 
+// coordinate in grid
 struct Coord {
     int row;
     int col;
@@ -22,6 +22,7 @@ struct Coord {
     }
 };
 
+// hash function for Coord
 namespace std {
     template<>
     struct hash<Coord> {
@@ -31,6 +32,7 @@ namespace std {
     };
 };
 
+// temporary item used while epxloring grid
 struct Item {
     Coord pos;
     std::string word;
@@ -126,7 +128,6 @@ int main(int argc, char** argv) {
         word_file = argv[2];
 
     std::set<std::string> words;
-    std::unordered_set<std::string> prefixes; // prefixes of length 4
 
     std::ifstream word_stream(word_file);
     if (!word_stream.is_open()) {
@@ -136,12 +137,10 @@ int main(int argc, char** argv) {
 
     std::string line;
     while (std::getline(word_stream, line)) {
-        // uppercase words
+        // uppercase then insert to set
         for (char& c : line)
             c = toupper(c);
-        // insert word and prefix
         words.insert(line);
-        prefixes.insert(line.substr(0, kPrefixLength));
     }
     word_stream.close();
     std::cout << words.size() << " words in list" << std::endl;

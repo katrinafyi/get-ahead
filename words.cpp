@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 
+#include <set>
 #include <unordered_set>
 #include <string>
 #include <vector>
@@ -9,9 +10,7 @@ constexpr int kPrefixLength = 4;
 
 struct Data {
     std::vector<std::string> grid;
-    std::unordered_set<std::string> words;
-    std::unordered_set<std::string> prefixes;
-    int prefix_length;
+    std::set<std::string> words;
 };
 
 struct Coord {
@@ -41,8 +40,7 @@ struct Item {
 int LongestWord(const Data& data, const Coord start) {
 
     const std::vector<std::string>& grid = data.grid;
-    const std::unordered_set<std::string>& words = data.words;
-    const std::unordered_set<std::string>& prefixes = data.prefixes;
+    const std::set<std::string>& words = data.words;
 
     int dim = grid.size();
 
@@ -62,9 +60,8 @@ int LongestWord(const Data& data, const Coord start) {
         Item item = stack.back();
         stack.pop_back();
 
-        // if current word part is equal to prefix length but not a prefix,
-        // terminate this path.
-        if (item.word.size() == data.prefix_length && !prefixes.count(item.word)) {
+        std::set<std::string>::const_iterator ceiling = words.lower_bound(item.word);
+        if (ceiling == words.end() || ceiling->compare(0, item.word.size(), item.word) != 0) {
             continue;
         }
 
@@ -113,7 +110,7 @@ int main(int argc, char** argv) {
     if (argc > 2)
         word_file = argv[2];
 
-    std::unordered_set<std::string> words;
+    std::set<std::string> words;
     std::unordered_set<std::string> prefixes; // prefixes of length 4
 
     std::ifstream word_stream(word_file);
@@ -148,7 +145,7 @@ int main(int argc, char** argv) {
 
     std::cout << words.size() << " words in list" << std::endl;
 
-    Data data = { grid, words, prefixes, kPrefixLength };
+    Data data = { grid, words };
 
     int n = grid.size();
     int max = 0;
